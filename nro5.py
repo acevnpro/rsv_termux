@@ -1571,8 +1571,8 @@ def switch_backend(cfg):
 # ==========================================
 # TRÌNH CHẠY CHÍNH (MAIN LOOP)
 # ==========================================
-SRC_DOWNLOAD_LINK = "https://drive.google.com/file/d/17wqWUp3avOhv6xkgbX03joR3zLH6A7i1/view?usp=sharing"
-APK_DOWNLOAD_LINK = "https://drive.google.com/file/d/1lRH7I86uUlqf3MBtfv8aWwo88Y-ucQrP/view?usp=sharing"
+SRC_DOWNLOAD_LINK = "https://drive.google.com/file/d/1u8RRcE-zI1LBd4QcudtjyuYUTxpD5qfP/view?usp=sharing"
+APK_DOWNLOAD_LINK = "https://drive.google.com/file/d/1K1bwBRhiyNLfEMuOo2Yujs2CGe9yMIip/view?usp=sharing"
 
 def show_download_links(cfg):
     os.system("clear")
