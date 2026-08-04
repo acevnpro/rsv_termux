@@ -1138,12 +1138,9 @@ def main():
             p_h("TẢI SRC & APK")
             print(f"""
 {C.CY}📥 Link tải SRC (mã nguồn server):{C.E}
-  {C.G}https://drive.google.com/file/d/17wqWUp3avOhv6xkgbX03joR3zLH6A7i1/view?usp=sharing{C.E}
+  {C.G}https://drive.google.com/file/d/1OS85oyU63x8BPL9vfbZp0C2B7I5xpmPc/view?usp=sharing{C.E}
 
-{C.CY}📱 Link tải APK (client game):{C.E}
-  {C.G}https://drive.google.com/file/d/1lRH7I86uUlqf3MBtfv8aWwo88Y-ucQrP/view?usp=sharing{C.E}
-
-{C.Y}Hướng dẫn: Copy link phía trên và dán vào trình duyệt trên máy tính hoặc điện thoại để tải về.{C.E}
+{C.Y}Hướng dẫn: Copy link phía trên và dán vào trình duyệt trên máy tính hoặc điện thoại để tải về .{C.E}
 """)
             input("\nNhấn Enter để quay lại...")
         elif ch=="0": break
