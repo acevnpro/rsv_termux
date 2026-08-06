@@ -46,11 +46,15 @@ add_ver(5, "nro5.py (lỗi kén client)", "nro5.py",
         "https://drive.google.com/file/d/1u8RRcE-zI1LBd4QcudtjyuYUTxpD5qfP/view?usp=sharing")
 
 add_ver(6, "nso.py ( bản ninja school không có apk - giải nén zip lấy jar)", "nso.py", 
-        "https://drive.google.com/drive/folders/THAY_LINK_DRIVE_SRC_BAN_6", 
+        "https://drive.google.com/file/d/1OS85oyU63x8BPL9vfbZp0C2B7I5xpmPc/view?usp=sharing", 
         "Không có APK (Chỉ có JAR trong ZIP)")
 
 add_ver(7, "nro4.py (bản mod cắt giảm nhiệm vụ - có thể lỗi)", "nro4.py", 
         "https://drive.google.com/file/d/1BA1aH1yxZFnq2h8xi98f18yOhR4r6nYu/view?usp=sharing")
+        
+add_ver(8, "avt.py (Avata Tea)", "avt.py", 
+        "https://drive.google.com/file/d/1VJfaGOgUzBdT5vAOuXDl8QzRSQxQRO3s/view?usp=sharing", 
+        "https://drive.google.com/file/d/1B9cx3X4gWMOvIWwJPNP18ITr_vyN6blO/view?usp=sharing")
 
 # Ví dụ nhân bản bản 8: Chỉ cần bỏ comment dòng dưới và sửa thông tin
 # add_ver(8, "nro6.py (bản thử nghiệm)", "nro6.py", "LINK_DRIVE_SRC_HERE")
