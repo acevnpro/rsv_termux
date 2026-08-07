@@ -21,7 +21,7 @@ def run_sql(query, fetch=False):
         cmd = f"mariadb --socket={socket_path} -u root -p{db_pw} {cfg['db_name']} -e \"{query}\""
         if fetch:
             cmd = f"mariadb --socket={socket_path} -u root -p{db_pw} {cfg['db_name']} --batch --skip-column-names -e \"{query}\""
-            
+
     if fetch:
         try: return subprocess.check_output(cmd, shell=True).decode().strip()
         except: return ""
@@ -60,21 +60,21 @@ def patch_source_code():
     if os.path.exists(server_java):
         p_info("Đang vá Server.java...")
         with open(server_java, 'r', encoding='utf-8') as f: content = f.read()
-        
+
         # 1. Xóa bỏ bảo trì định kỳ
         content = content.replace("AutoMaintenance.maintenance(0, 0, 0);", "// AutoMaintenance.maintenance(0, 0, 0);")
-        
+
         # 2. Ép isStop = false khi khởi động
         if "NinjaSchool.isStop = false;" not in content:
-            content = content.replace("public static void start() {\n        try {\n            setOffline();", 
+            content = content.replace("public static void start() {\n        try {\n            setOffline();",
                                       "public static void start() {\n        try {\n            NinjaSchool.isStop = false;\n            setOffline();")
-        
+
         # 3. Mở giới hạn IP cho localhost (127.0.0.1)
         if "!ip.equals(\"127.0.0.1\")" not in content:
             old_check = "if (number >= Config.getInstance().getIpAddressLimit()) {"
             new_check = "if (!ip.equals(\"127.0.0.1\") && number >= Config.getInstance().getIpAddressLimit()) {"
             content = content.replace(old_check, new_check)
-            
+
         with open(server_java, 'w', encoding='utf-8') as f: f.write(content)
         p_ok("Đã vá Source Code thành công!")
     else:
@@ -106,8 +106,7 @@ HOME = os.environ.get('HOME', '/data/data/com.termux/files/home')
 TMP = f"{PREFIX}/tmp"
 SOCKET = f"{TMP}/mysql.sock"
 CONFIG_FILE = os.path.join(HOME, "nso_config.json")
-# BASE_DIR = thư mục chứa mã nguồn (src/, pom.xml, ...)
-BASE_DIR = HOME  # Mặc định, sẽ cập nhật sau khi giải nén
+BASE_DIR = HOME
 
 def get_free_port(start_port):
     port = start_port
@@ -122,7 +121,6 @@ def get_free_port(start_port):
     return start_port
 
 def load_config():
-    # Giá trị mặc định ban đầu
     defaults = {"db_name":"nsoz","tcp_domain":get_local_ip(),"tcp_port":14444,
                 "mode":"offline","jvm_xmx":"512m",
                 "lamp_backend":"termux",
@@ -130,7 +128,7 @@ def load_config():
                 "local_game_port": 14444,
                 "base_dir": HOME,
                 "status":{"env":False,"db_web":False}}
-    
+
     cfg = defaults.copy()
     if os.path.exists(CONFIG_FILE):
         try:
@@ -139,11 +137,10 @@ def load_config():
                 cfg.update(saved_cfg)
         except: pass
     else:
-        # Chỉ tìm port trống nếu chưa có cấu hình
         cfg['web_port'] = get_free_port(8080)
         cfg['web_url'] = f"http://{get_local_ip()}:{cfg['web_port']}"
         save_config(cfg)
-        
+
     return cfg
 
 def save_config(cfg):
@@ -166,12 +163,10 @@ def is_java_running():
     except: return False
 
 def is_installed():
-    """Kiểm tra đã giải nén mã nguồn chưa"""
     return os.path.exists(os.path.join(HOME, "pom.xml")) or os.path.exists(os.path.join(HOME, "src"))
 
 def is_db_running():
     try:
-        # Thay vì dùng -x (khớp tuyệt đối), chúng ta dùng pgrep thông thường để tăng độ nhạy
         subprocess.check_output("pgrep mariadbd || pgrep mysqld", shell=True)
         return True
     except:
@@ -208,14 +203,13 @@ các bước bên dưới:{C.E}
 
 def find_and_extract():
     p_h("TÌM FILE NÉN TRONG THƯ MỤC DOWNLOAD")
-    
-    # Quét các thư mục Download phổ biến trên Android
+
     search_dirs = [
         "/sdcard/Download", "/sdcard/Downloads",
         "/storage/emulated/0/Download", "/storage/emulated/0/Downloads",
         "/sdcard"
     ]
-    
+
     found = []
     for d in search_dirs:
         if os.path.isdir(d):
@@ -223,10 +217,9 @@ def find_and_extract():
                 found.extend(glob.glob(os.path.join(d, f"*nso*{ext}")))
                 found.extend(glob.glob(os.path.join(d, f"*NSO*{ext}")))
                 found.extend(glob.glob(os.path.join(d, f"*Exe*{ext}")))
-    
-    # Loại bỏ trùng lặp
+
     found = list(set(found))
-    
+
     if not found:
         p_err("Không tìm thấy file nén nào!")
         print(f"\n{C.Y}Hướng dẫn:{C.E}")
@@ -239,38 +232,36 @@ def find_and_extract():
             found = [manual]
         else:
             input("\nEnter..."); return
-    
+
     print(f"\n{C.G}Tìm thấy {len(found)} file:{C.E}")
     for i, f in enumerate(found):
         size = os.path.getsize(f) / (1024*1024)
         print(f"  [{i+1}] {os.path.basename(f)} ({size:.1f} MB)")
-    
+
     ch = input(f"\nChọn file (1-{len(found)}): ").strip()
     try:
         idx = int(ch) - 1
         chosen = found[idx]
     except:
         p_err("Lựa chọn không hợp lệ"); input("\nEnter..."); return
-    
+
     p_info(f"Đang giải nén {os.path.basename(chosen)}...")
-    
+
     if chosen.endswith(".zip"):
         ret = os.system(f"unzip -o '{chosen}' -d {HOME}")
     else:
         ret = os.system(f"tar xzf '{chosen}' -C {HOME}")
-    
+
     if ret == 0:
-        # Tìm thư mục vừa giải nén (chứa pom.xml)
         for item in os.listdir(HOME):
             pom = os.path.join(HOME, item, "pom.xml")
             if os.path.isdir(os.path.join(HOME, item)) and os.path.exists(pom):
-                # Di chuyển nội dung vào HOME
                 src_dir = os.path.join(HOME, item)
                 os.system(f"cp -rn {src_dir}/* {HOME}/ 2>/dev/null")
                 os.system(f"cp -rn {src_dir}/.* {HOME}/ 2>/dev/null")
                 p_ok(f"Đã giải nén từ thư mục: {item}")
                 break
-        
+
         if is_installed():
             print(f"\n{C.G}{C.BOLD}🎉 GIẢI NÉN THÀNH CÔNG!{C.E}")
             print(f"Bây giờ hãy chọn [2] để cài môi trường.")
@@ -296,20 +287,16 @@ def install_env_fresh():
     cfg['lamp_backend'] = 'termux'
     save_config(cfg)
     p_info("Đang cập nhật và cài đặt các gói cần thiết...")
-    
-    # Giải phóng tiến trình treo trước khi cài
+
     os.system("pkill -9 mariadbd mariadbd-safe nginx php-fpm > /dev/null 2>&1")
-    
-    # Bổ sung procps để có pgrep, pkill chuẩn
+
     pkgs = "openjdk-17 mariadb nginx php php-fpm maven wget git tmux lsof tar zip unzip procps cloudflared"
     if os.system(f"pkg update -y && pkg install {pkgs} -y") == 0:
         p_ok("Môi trường cơ bản đã sẵn sàng!")
-        # Tự động chạy thiết lập DB & Web luôn cho tiện
         full_setup()
     else:
         p_err("Cài đặt gặp lỗi. Hãy kiểm tra kết nối mạng của bạn.")
     input("\nEnter...")
-
 
 def setup_ksweb():
     p_h("THIẾT LẬP KSWEB HYBRID")
@@ -318,21 +305,17 @@ def setup_ksweb():
     print("2. Bật Lighttpd (hoặc Nginx) trên cổng 8080.")
     print("3. Bật MySQL trên cổng 3306.")
     input(f"\n{C.G}Nhấn Enter khi KSWEB đã BẬT thành công...{C.E}")
-    
+
     cfg = load_config()
-    
-    # Tự động kết nối và đổi mật khẩu KSWEB thành 123456
+
     p_info("Đang tự động cấu hình Database KSWEB...")
     os.system("pkg install mariadb -y > /dev/null 2>&1")
-    
-    # Kiểm tra xem mật khẩu đã được thiết lập là 123456 chưa
+
     ret_pw = os.system("mariadb --skip-ssl -h 127.0.0.1 -P 3306 -u root -p123456 -e 'SELECT 1;' > /dev/null 2>&1")
     if ret_pw == 0:
         p_ok("Kết nối thành công! Mật khẩu MySQL đã được cấu hình là 123456.")
-        # Đảm bảo root@127.0.0.1 có đủ quyền
         os.system("mariadb --skip-ssl -h 127.0.0.1 -P 3306 -u root -p123456 -e \"GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' IDENTIFIED BY '123456' WITH GRANT OPTION; FLUSH PRIVILEGES;\" > /dev/null 2>&1")
     else:
-        # Thử kết nối không pass (KSWEB mặc định pass rỗng)
         ret_empty = os.system("mariadb --skip-ssl -h 127.0.0.1 -P 3306 -u root -e 'SELECT 1;' > /dev/null 2>&1")
         if ret_empty == 0:
             p_info("Phát hiện mật khẩu mặc định rỗng. Đang đổi mật khẩu thành 123456...")
@@ -343,16 +326,14 @@ def setup_ksweb():
             p_ok("Đã cấu hình mật khẩu MySQL KSWEB thành 123456!")
         else:
             p_err("Không kết nối được MySQL KSWEB! Kiểm tra lại App KSWEB đã bật chưa hoặc mật khẩu đã bị đổi khác.")
-    
-    # Tạo db và import
+
     db = cfg["db_name"]
     sql = os.path.join(HOME, "SQL/nsoz.sql")
     os.system(f"mariadb --skip-ssl -h 127.0.0.1 -P 3306 -u root -p123456 -e 'CREATE DATABASE IF NOT EXISTS {db} CHARACTER SET utf8mb4;' > /dev/null 2>&1")
     if os.path.exists(sql):
         os.system(f"mariadb --skip-ssl -h 127.0.0.1 -P 3306 -u root -p123456 {db} < '{sql}' > /dev/null 2>&1")
         p_ok("Đã tạo Database và Import dữ liệu!")
-    
-    # Tự động copy Web ra htdocs
+
     p_info("Đang xuất mã nguồn Web ra KSWEB htdocs...")
     htdocs = "/sdcard/htdocs/nso_web"
     os.system(f"mkdir -p {htdocs}")
@@ -361,29 +342,24 @@ def setup_ksweb():
         src_web = os.path.join(HOME, "web")
     if os.path.isdir(src_web):
         os.system(f"cp -r {src_web}/* {htdocs}/")
-        # Vá PHP kết nối localhost -> 127.0.0.1
         os.system(f'find {htdocs} -name "*.php" -exec sed -i \'s/"localhost"/"127.0.0.1"/g\' {{}} +')
         p_ok(f"Đã xuất Web ra {htdocs}!")
-    
-    # Vá config.properties: tắt SSL cho JDBC kết nối KSWEB MySQL
+
     prop = os.path.join(HOME, "config.properties")
     if os.path.exists(prop):
         p_info("Đang vá config.properties để tắt SSL cho JDBC...")
         with open(prop, 'r', encoding='utf-8', errors='ignore') as f:
             t = f.read()
-        # Thêm useSSL=false nếu chưa có
         if 'useSSL=false' not in t:
-            # Tìm dòng db.driver và thêm dòng jdbc.extra sau nó
             t = t.replace('db.driver=com.mysql.cj.jdbc.Driver',
                            'db.driver=com.mysql.cj.jdbc.Driver\ndb.url.extra=?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC')
-        # Đảm bảo db.host=127.0.0.1
         import re as _re
         t = _re.sub(r'db\.host=.*', 'db.host=127.0.0.1', t)
         t = _re.sub(r'db\.password=.*', 'db.password=123456', t)
         with open(prop, 'w', encoding='utf-8') as f:
             f.write(t)
         p_ok("Đã vá config.properties (useSSL=false, db.host=127.0.0.1)!")
-    
+
     p_ok("THIẾT LẬP KSWEB HOÀN TẤT!")
     print("Vui lòng vào [4] để Vá IP & Build Server.")
     input("\nEnter...")
@@ -392,44 +368,31 @@ def full_setup():
     p_h("THIẾT LẬP DB & WEB")
     cfg = load_config()
 
-    # =============================================
-    # BƯỚC 1: Dọn dẹp toàn bộ dịch vụ cũ
-    # =============================================
     p_info("Đang dọn dẹp tiến trình cũ...")
     os.system("killall -9 nginx php-fpm mariadbd mariadbd-safe 2>/dev/null")
     os.system("pkill -9 -f mariadbd; pkill -9 -f nginx; pkill -9 -f php-fpm > /dev/null 2>&1")
     os.system(f"rm -f {SOCKET} {TMP}/mysqld.sock")
     time.sleep(2)
 
-    # =============================================
-    # BƯỚC 2: Khởi tạo dữ liệu MariaDB nếu chưa có
-    # =============================================
     if not os.path.exists(os.path.join(PREFIX, "var/lib/mysql/mysql")):
         p_info("Đang khởi tạo Database lần đầu...")
         os.system("mariadb-install-db --datadir=$PREFIX/var/lib/mysql > /dev/null 2>&1 || mysql_install_db > /dev/null 2>&1")
     os.system(f"mkdir -p {PREFIX}/var/run/mysqld {TMP}")
 
-    # =============================================
-    # BƯỚC 3: Bật MariaDB chế độ bypass xác thực
-    # (skip-grant-tables để tránh lỗi unix_socket)
-    # =============================================
     p_info("Đang khởi động MariaDB (chế độ cài đặt)...")
     os.system(f"mariadbd-safe --socket={SOCKET} --skip-grant-tables --skip-networking > /dev/null 2>&1 &")
-    
+
     socket_ready = False
     for i in range(30):
         if os.path.exists(SOCKET):
             socket_ready = True
             break
         time.sleep(1)
-    
+
     if not socket_ready:
         p_err("MariaDB không khởi động được! Thử lại sau.")
         input("\nEnter..."); return
 
-    # =============================================
-    # BƯỚC 4: Tạo Database và Import SQL
-    # =============================================
     db = cfg["db_name"]
     p_info(f"Đang tạo database '{db}'...")
     os.system(f"mariadb --socket={SOCKET} -e 'CREATE DATABASE IF NOT EXISTS {db} CHARACTER SET utf8mb4;'")
@@ -445,11 +408,6 @@ def full_setup():
     else:
         p_err(f"Không tìm thấy file SQL tại: {sql}")
 
-    # =============================================
-    # BƯỚC 5: Vá bảng global_priv để đổi plugin
-    # xác thực từ unix_socket -> mysql_native_password
-    # (Đây là bước quan trọng nhất - cho phép Java kết nối qua TCP)
-    # =============================================
     p_info("Đang cấu hình xác thực cho root@localhost...")
     sql_fix = (
         "UPDATE mysql.global_priv SET priv=JSON_SET(priv,"
@@ -460,7 +418,6 @@ def full_setup():
     )
     os.system(f"mariadb --socket={SOCKET} -e \"{sql_fix}\"")
 
-    # Thêm user root@127.0.0.1 vào global_priv
     sql_insert = (
         "INSERT IGNORE INTO mysql.global_priv (Host, User, Priv) VALUES ("
         "'127.0.0.1', 'root', "
@@ -470,29 +427,20 @@ def full_setup():
     )
     os.system(f"mariadb --socket={SOCKET} -e \"{sql_insert}\"")
 
-    # =============================================
-    # BƯỚC 6: Khởi động lại MariaDB bình thường + TCP
-    # =============================================
     p_info("Đang khởi động lại MariaDB với TCP 3306...")
     os.system("pkill -9 -f mariadbd")
     time.sleep(3)
     os.system(f"rm -f {SOCKET} {TMP}/mysqld.sock")
     os.system(f"mariadbd-safe --socket={SOCKET} --port=3306 --bind-address=127.0.0.1 > /dev/null 2>&1 &")
-    
+
     for i in range(30):
         if os.path.exists(SOCKET):
             break
         time.sleep(1)
     time.sleep(2)
 
-    # =============================================
-    # BƯỚC 7: Cấp quyền TCP cho Java (JDBC)
-    # Chạy SAU khi restart - lúc này server có privilege tables
-    # =============================================
     p_info("Đang cấu hình mật khẩu và quyền TCP cho Java...")
-    # Lúc này pass vẫn đang trống nên không dùng -p cho lệnh đầu tiên
     os.system(f"mariadb --socket={SOCKET} -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';\"")
-    # Các lệnh sau dùng -p123456 vì pass đã có hiệu lực. Tạo user nếu chưa có.
     os.system(f"mariadb --socket={SOCKET} -u root -p123456 -e \"CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED BY '123456';\"")
     os.system(f"mariadb --socket={SOCKET} -u root -p123456 -e \"GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' WITH GRANT OPTION;\"")
     os.system(f"mariadb --socket={SOCKET} -u root -p123456 -e \"CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '123456';\"")
@@ -501,16 +449,12 @@ def full_setup():
     os.system(f"ln -sf {SOCKET} {TMP}/mysqld.sock")
     p_ok("Database đã sẵn sàng và cho phép kết nối TCP!")
 
-    # =============================================
-    # BƯỚC 8: Cấu hình và bật Nginx + PHP-FPM
-    # =============================================
     p_info(f"Đang cấu hình Web trên Port {cfg['web_port']}...")
     os.system("pkill -9 nginx; pkill -9 php-fpm")
     time.sleep(1)
     web_dir = os.path.join(HOME, "nso_web")
     os.makedirs(web_dir, exist_ok=True)
 
-    # Tự động copy file web từ thư mục web/ vào nso_web/ nếu nso_web còn trống
     src_web = os.path.join(HOME, "web")
     if os.path.isdir(src_web):
         existing_files = os.listdir(web_dir)
@@ -519,14 +463,11 @@ def full_setup():
             os.system(f"cp -rf {src_web}/. {web_dir}/")
             os.system(f"chmod -R 755 {web_dir}/")
             p_ok("Copy file web thành công!")
-        # Vá tất cả file PHP: đổi 'localhost' -> '127.0.0.1'
-        # để PHP kết nối MySQL qua TCP thay vì Unix Socket
         p_info("Đang vá kết nối Database trong file PHP...")
         os.system(f'find {web_dir} -name "*.php" -exec sed -i \'s/"localhost"/"127.0.0.1"/g\' {{}} +')
         os.system(f"find {web_dir} -name '*.php' -exec sed -i \"s/'localhost'/'127.0.0.1'/g\" {{}} +")
         p_ok("Vá PHP localhost -> 127.0.0.1 hoàn tất!")
-    
-    # Tạo thư mục logs và file thông báo mặc định
+
     p_info("Đang khởi tạo thư mục logs và file thông báo...")
     log_tb = os.path.join(HOME, "logs", "thongbao")
     os.makedirs(log_tb, exist_ok=True)
@@ -581,9 +522,6 @@ http {{
     os.system("php-fpm; nginx")
     p_ok(f"Web sẵn sàng tại: http://{get_local_ip()}:{cfg['web_port']}")
 
-    # =============================================
-    # BƯỚC 9: Build Server
-    # =============================================
     p_info("Đang build server (Maven)...")
     ret = subprocess.run(["mvn", "clean", "package", "-DskipTests"], cwd=HOME)
     if ret.returncode == 0:
@@ -594,7 +532,7 @@ http {{
     input("\nEnter...")
 
 # ==========================================
-# QUẢN LÝ TÀI KHOẢN (Ported from nro.py)
+# QUẢN LÝ TÀI KHOẢN
 # ==========================================
 def manage_account():
     p_h("QUẢN LÝ TÀI KHOẢN")
@@ -603,7 +541,7 @@ def manage_account():
     print("[3] Đổi mật khẩu")
     print("[0] Quay lại")
     ch = input("\nChọn: ")
-    
+
     if ch == "1":
         res = run_sql("SELECT username, status FROM users ORDER BY id DESC LIMIT 20;", fetch=True)
         if res:
@@ -629,14 +567,14 @@ def manage_account():
     input("\nEnter...")
 
 # ==========================================
-# QUẢN LÝ KẾT NỐI (Ported from nro.py)
+# QUẢN LÝ KẾT NỐI (Đã sửa lỗi mục 5: Nhập IP/Port thủ công)
 # ==========================================
 def manage_tcp(cfg):
     p_h("CẤU HÌNH KẾT NỐI & NGROK")
     mode_str = cfg.get('mode', 'offline').upper()
     print(f"Chế độ hiện tại: {C.H}{mode_str}{C.E}")
     print(f"Địa chỉ hiện tại: {C.Y}{cfg['tcp_domain']}:{cfg['tcp_port']}{C.E}")
-    
+
     print(f"\n[1] Cài đặt Ngrok (ARM64)")
     print(f"[2] Khởi chạy & Quản lý Ngrok")
     print(f"[3] Online: Tự động lấy từ Ngrok API")
@@ -683,6 +621,20 @@ def manage_tcp(cfg):
             d, p = link.rsplit(':', 1)
             cfg['tcp_domain'] = resolve_ip(d); cfg['tcp_port'] = int(p); cfg['mode'] = 'online'
             save_config(cfg); p_ok("OK")
+    elif ch == "5":
+        # SỬA LỖI MỤC 5: Xử lý nhập IP/Port thủ công khi người dùng chọn [5]
+        ip = input("Nhập IP hoặc Domain: ").strip().replace("tcp://", "")
+        port = input("Nhập Port (mặc định 14444): ").strip()
+        if not port:
+            port = "14444"
+        if ip and port.isdigit():
+            cfg['tcp_domain'] = resolve_ip(ip)
+            cfg['tcp_port'] = int(port)
+            cfg['mode'] = 'online'
+            save_config(cfg)
+            p_ok(f"Đã lưu kết nối Online thủ công: {cfg['tcp_domain']}:{cfg['tcp_port']}")
+        else:
+            p_err("IP/Domain hoặc Port nhập vào không hợp lệ!")
     elif ch == "6":
         cfg["mode"] = "offline"; cfg["tcp_domain"] = get_local_ip(); cfg["tcp_port"] = cfg['local_game_port']
         save_config(cfg); p_ok(f"OFFLINE: {cfg['tcp_domain']}")
@@ -713,16 +665,16 @@ def config_ram(cfg):
         m_line = lines[1].split()
         total, used = int(m_line[1]), int(m_line[2])
         avail = int(m_line[6]) if len(m_line)>6 else total-used
-        
+
         swap_line = lines[2].split() if len(lines)>2 else []
         swap_total = int(swap_line[1]) if swap_line else 0
         swap_used = int(swap_line[2]) if swap_line else 0
-        
+
         pct = int(used * 20 / total)
         print(f"  RAM Thật: [{'█' * pct}{'░' * (20-pct)}] {used}MB / {total}MB")
         if swap_total > 0:
             print(f"  RAM Ảo (Swap): {swap_used}MB / {swap_total}MB")
-        
+
         suggest = max(min(avail - 150, 1024), 256)
         p_info(f"Gợi ý an toàn cho máy này: {suggest}MB")
     except: suggest = 512
@@ -730,7 +682,7 @@ def config_ram(cfg):
     print(f"\n[1] Cấu hình RAM cho Server (Hiện: {cfg.get('jvm_xmx','512m')})")
     print(f"[2] Tạo/Cập nhật RAM ảo - Swap (Yêu cầu ROOT)")
     print(f"[0] Quay lại")
-    
+
     ch = input(f"\n{C.BOLD}Chọn: {C.E}")
     if ch == "1":
         val = input(f"Nhập RAM (VD: 512m, 1g) [{suggest}m]: ").strip()
@@ -753,14 +705,14 @@ def toggle_lamp():
     cfg = load_config()
     backend = cfg.get('lamp_backend', 'termux')
     print(f"  Chế độ hiện tại: {C.H}{backend.upper()}{C.E}")
-    
+
     if backend == 'termux':
         db_on = is_db_running()
         web_on = is_port_open(cfg['web_port'])
     else:
         db_on = is_port_open(3306)
         web_on = is_port_open(8080)
-        
+
     print(f"  MariaDB : {'[ON]' if db_on else '[OFF]'}")
     print(f"  Web     : {'[ON]' if web_on else '[OFF]'} (Port {8080 if backend == 'ksweb' else cfg['web_port']})")
     print("-" * 40)
@@ -789,7 +741,7 @@ def toggle_lamp():
         print("[3] Chuyển đổi sang chế độ Termux LAMP")
     print("[0] Quay lại")
     ch=input("\nChọn: ").lower()
-    
+
     if ch == '3':
         if backend == 'termux':
             p_info("Đang gỡ/tắt Termux LAMP và chuyển sang KSWEB...")
@@ -809,10 +761,8 @@ def toggle_lamp():
     if ch=='a':
         os.system("pkill -9 -f mariadbd; pkill -9 -f nginx; pkill -9 -f php-fpm > /dev/null 2>&1")
         os.system(f"rm -f {SOCKET} {TMP}/mysqld.sock")
-        # Bật MariaDB kèm mở cổng 3306
         os.system(f"mariadbd-safe --socket={SOCKET} --port=3306 --bind-address=127.0.0.1 > /dev/null 2>&1 &")
         os.system("php-fpm; nginx")
-        # Chờ và link socket thông minh
         time.sleep(2)
         if os.path.exists(SOCKET):
             os.system(f"ln -sf {SOCKET} {TMP}/mysqld.sock")
@@ -885,7 +835,6 @@ def package_portable(cfg):
     p_h("ĐÓNG GÓI PORTABLE")
     out=os.path.join(HOME,"nso_portable.tar.gz")
     exc="--exclude='target' --exclude='*.log' --exclude='nso_config.json' --exclude='.git' --exclude='run_server.sh'"
-    # Đóng gói toàn bộ thư mục HOME (trừ các file tạm)
     dirs = "src SQL Data item_roi nso_web config.properties pom.xml nso.py"
     existing = " ".join([d for d in dirs.split() if os.path.exists(os.path.join(HOME, d))])
     cmd = f"cd {HOME} && tar czf {out} {exc} {existing}"
@@ -900,82 +849,70 @@ def package_portable(cfg):
     else: p_err("Đóng gói thất bại!")
     input("\nEnter...")
 
-# ==========================================
-# VÁ CLIENT JAR
-# ==========================================
 def patch_jar_menu():
     p_h("VÁ CLIENT (.JAR)")
     dl_path = "/sdcard/Download"
-    if not os.path.exists(dl_path): 
+    if not os.path.exists(dl_path):
         p_err("Không tìm thấy thư mục Download!")
         return
-    
+
     jars = [f for f in os.listdir(dl_path) if f.endswith(".jar")]
     if not jars:
         p_err("Không có file .jar nào trong Download.")
         return
-    
+
     print("Danh sách file:")
     for i, f in enumerate(jars): print(f" [{i+1}] {f}")
     print(" [0] Quay lại")
-    
+
     sel = input("\nChọn file: ")
     if sel == "0" or not sel.isdigit(): return
-    
+
     jar_name = jars[int(sel)-1]
     jar_path = os.path.join(dl_path, jar_name)
-    
+
     new_host = input(f"Nhập IP/Domain mới (mặc định localhost): ") or "127.0.0.1"
     new_port = input(f"Nhập Port mới (mặc định 14444): ") or "14444"
-    
+
     p_info("Đang vá... vui lòng đợi...")
     tmp_dir = os.path.join(HOME, "tmp_jar")
     os.system(f"rm -rf {tmp_dir} && mkdir -p {tmp_dir}")
-    
+
     import zipfile
     try:
         with zipfile.ZipFile(jar_path, 'r') as zip_ref:
             zip_ref.extractall(tmp_dir)
-            
+
         count = 0
         for root, dirs, files in os.walk(tmp_dir):
             for file in files:
                 if file.endswith(".class"):
                     fpath = os.path.join(root, file)
                     with open(fpath, 'rb') as f: data = f.read()
-                    
-                    # Tìm và vá các định dạng thường gặp
-                    # 1. socket://127.0.0.1:14444
-                    # 2. Local:127.0.0.1:14444:0:0
-                    # Chúng ta sẽ tìm theo chuỗi con để linh hoạt
-                    
-                    # Vá cả IP và Port cùng lúc để tránh lỗi lệch offset
+
                     new_data = patch_binary_string(data, "127.0.0.1", new_host)
                     new_data = patch_binary_string(new_data, "14444", new_port)
-                    
+
                     if new_data != data:
                         with open(fpath, 'wb') as f: f.write(new_data)
                         count += 1
-        
-        # Đóng gói lại
+
         custom_name = input(f"\nNhập tên file mới (mặc định {jar_name.replace('.jar', '_PATCHED')}): ")
         if custom_name:
             if not custom_name.endswith(".jar"): custom_name += ".jar"
             out_name = custom_name
         else:
             out_name = jar_name.replace(".jar", "_PATCHED.jar")
-            
-        # Thử lưu vào Download, nếu lỗi thì lưu vào HOME
+
         out_path = os.path.join(dl_path, out_name)
         try:
-            # Kiểm tra quyền ghi bằng cách tạo file tạm
             test_f = os.path.join(dl_path, ".test_write")
             with open(test_f, "w") as f: f.write("test")
             os.remove(test_f)
         except:
             p_info("Không có quyền ghi vào /sdcard/Download. Chuyển sang lưu tại HOME.")
             out_path = os.path.join(HOME, out_name)
-        
+
         with zipfile.ZipFile(out_path, 'w', zipfile.ZIP_DEFLATED) as zip_out:
             for root, dirs, files in os.walk(tmp_dir):
                 for file in files:
@@ -988,42 +925,40 @@ def patch_jar_menu():
     input("\nEnter...")
 
 def manage_web_download():
-    """Đưa bản vá lên web để người chơi tải về"""
     p_h("QUẢN LÝ LINK TẢI GAME")
-    
-    # Quét ở 2 nơi: HOME và /sdcard/Download
+
     scan_dirs = [HOME, "/sdcard/Download"]
     all_jars = []
-    
+
     for d in scan_dirs:
         if os.path.exists(d):
             for f in os.listdir(d):
                 if f.endswith(".jar"):
                     all_jars.append(os.path.join(d, f))
-                    
+
     if not all_jars:
         p_err("Không có file .jar nào trong HOME hoặc /sdcard/Download!")
         return
-    
+
     print("Danh sách file .jar tìm thấy:")
     for i, p in enumerate(all_jars):
         folder = "DOWNLOAD" if "/sdcard/Download" in p else "HOME"
         fname = os.path.basename(p)
         print(f" [{i+1}] [{folder}] {fname}")
     print(" [0] Quay lại")
-    
+
     sel = input("\nChọn file muốn đưa lên Web: ")
     if sel == "0" or not sel.isdigit(): return
-    
+
     src_path = all_jars[int(sel)-1]
     jar_name = os.path.basename(src_path)
     web_dir = os.path.join(HOME, "nso_web")
     dest_path = os.path.join(web_dir, "nso_game.jar")
-    
+
     if not os.path.exists(web_dir):
         p_err("Thư mục web không tồn tại!")
         return
-        
+
     p_info(f"Đang đưa {jar_name} lên Web...")
     import shutil
     try:
@@ -1043,7 +978,7 @@ def get_public_web_url():
                 match = re.search(r"https://[A-Za-z0-9-]+\.trycloudflare\.com", content)
                 if match: return match.group(0)
         except: pass
-        
+
     import urllib.request
     for port in [4040, 4041]:
         try:
@@ -1063,7 +998,6 @@ def main():
             continue
         os.system("clear")
         backend = cfg.get('lamp_backend', 'termux')
-        # Kiểm tra trạng thái phù hợp với từng backend
         if backend == 'ksweb':
             db_ok = is_port_open(3306)
             web_ok = is_port_open(8080)
@@ -1085,9 +1019,9 @@ def main():
 ==========================================
       NSO PRO MANAGER - Exe_Z Terminal
 ========================================={C.E}
- {C.G}tôi tạo ra app này để mod những game này thành game pvp 
- hoặc các chế độ khác tương tự mà không cần cày quốc 
- ae ai có chung ý tưởng nhớ share cho mọi người để 
+ {C.G}tôi tạo ra app này để mod những game này thành game pvp
+ hoặc các chế độ khác tương tự mà không cần cày quốc
+ ae ai có chung ý tưởng nhớ share cho mọi người để
  chúng ta cùng vui vẻ nhé{C.E}
 ------------------------------------------
  IP LAN: {C.G}{get_local_ip()}{C.E} | TCP: {C.Y}{cfg.get('tcp_domain', '127.0.0.1')}:{cfg.get('tcp_port', 14444)}{C.E}
@@ -1106,7 +1040,6 @@ def main():
  [10] VÁ CLIENT (.JAR)
  [11] ĐƯA GAME LÊN WEB
  [12] CẤU HÌNH RAM JVM
- [L] TẢI SRC & APK (Link Google Drive)
  [0] THOÁT
 ------------------------------------------""")
         ch=input(f"{C.BOLD}Lựa chọn: {C.E}")
@@ -1134,15 +1067,6 @@ def main():
         elif ch=="10": patch_jar_menu()
         elif ch=="11": manage_web_download()
         elif ch=="12": config_ram(cfg)
-        elif ch.lower() == 'l':
-            p_h("TẢI SRC & APK")
-            print(f"""
-{C.CY}📥 Link tải SRC (mã nguồn server):{C.E}
-  {C.G}https://drive.google.com/file/d/1OS85oyU63x8BPL9vfbZp0C2B7I5xpmPc/view?usp=sharing{C.E}
-
-{C.Y}Hướng dẫn: Copy link phía trên và dán vào trình duyệt trên máy tính hoặc điện thoại để tải về .{C.E}
-""")
-            input("\nNhấn Enter để quay lại...")
         elif ch=="0": break
         time.sleep(0.1)
 
